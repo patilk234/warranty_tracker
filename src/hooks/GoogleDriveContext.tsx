@@ -61,25 +61,44 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const start = async () => {
+    const initializeGis = () => {
+      if (!window.google?.accounts?.oauth2) {
+        console.log('GIS not ready, retrying in 100ms...');
+        setTimeout(initializeGis, 100);
+        return;
+      }
+
+      if (!CLIENT_ID || CLIENT_ID === 'your_google_client_id_here' || CLIENT_ID === 'undefined') {
+        console.error('CRITICAL: Google Client ID is missing or undefined.');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        await initGapi();
-        
-        // Initialize GIS Token Client
         const client = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: 'https://www.googleapis.com/auth/drive.file',
           callback: async (response: google.accounts.oauth2.TokenResponse) => {
             if (response.error !== undefined) {
-              throw response;
+              console.error('GIS Error:', response);
+              return;
             }
             setIsAuthenticated(true);
             await initializeAppData();
           },
         });
         setTokenClient(client);
-
         setIsLoading(false);
+      } catch (err) {
+        console.error('Error initializing GIS', err);
+        setIsLoading(false);
+      }
+    };
+
+    const start = async () => {
+      try {
+        await initGapi();
+        initializeGis();
       } catch (err) {
         console.error('Error initializing GAPI', err);
         setIsLoading(false);
@@ -90,7 +109,19 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
 
   const login = () => {
     if (tokenClient) {
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      try {
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } catch (err) {
+        console.error('Login request failed', err);
+        alert('Login failed to start. Please check if popups are blocked.');
+      }
+    } else {
+      console.error('Login clicked but tokenClient not initialized.');
+      if (!CLIENT_ID) {
+        alert('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your GitHub Secrets.');
+      } else {
+        alert('Google login is still initializing. Please wait a few seconds and try again.');
+      }
     }
   };
 
@@ -106,7 +137,11 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addWarranty = async (warrantyData: Omit<Warranty, 'id' | 'createdAt'>) => {
-    if (!database || !dbFileId) return;
+    console.log('addWarranty called with:', warrantyData);
+    if (!database || !dbFileId) {
+      console.error('addWarranty failed: database or dbFileId is missing', { database: !!database, dbFileId: !!dbFileId });
+      return;
+    }
 
     const newWarranty: Warranty = {
       ...warrantyData,
@@ -120,8 +155,15 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
       lastUpdated: new Date().toISOString(),
     };
 
-    await writeJsonFile(dbFileId, updatedDb);
-    setDatabase(updatedDb);
+    try {
+      console.log('Attempting to write updated database to Google Drive...');
+      await writeJsonFile(dbFileId, updatedDb);
+      setDatabase(updatedDb);
+      console.log('Successfully saved warranty and updated local state.');
+    } catch (err) {
+      console.error('Failed to write database file to Drive:', err);
+      throw err;
+    }
   };
 
   const updateWarranty = async (updatedWarranty: Warranty) => {

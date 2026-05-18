@@ -2,16 +2,23 @@ const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/r
 
 export const initGapi = () => {
   return new Promise<void>((resolve, reject) => {
-    gapi.load('client', async () => {
-      try {
-        await gapi.client.init({
-          discoveryDocs: DISCOVERY_DOCS,
+    const checkGapi = () => {
+      if (typeof gapi !== 'undefined') {
+        gapi.load('client', async () => {
+          try {
+            await gapi.client.init({
+              discoveryDocs: DISCOVERY_DOCS,
+            });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
         });
-        resolve();
-      } catch (err) {
-        reject(err);
+      } else {
+        setTimeout(checkGapi, 100);
       }
-    });
+    };
+    checkGapi();
   });
 };
 

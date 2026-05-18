@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FormEvent, ChangeEvent } from 'react';
+import type { ChangeEvent } from 'react';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
@@ -22,24 +22,38 @@ const AddWarranty = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!folderId) return;
+    console.log('Form submitted. FolderId:', folderId);
+
+    if (!folderId) {
+      alert('Application folder not found. Please try refreshing or re-logging.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       // 1. Upload files first
       const fileIds: string[] = [];
       if (files.length > 0) {
+        console.log(`Starting upload of ${files.length} files...`);
         setUploadingFiles(true);
         for (const file of files) {
-          const result = await uploadFile(folderId, file);
-          fileIds.push(result.id);
+          try {
+            const result = await uploadFile(folderId, file);
+            fileIds.push(result.id);
+            console.log('Uploaded file successfully, ID:', result.id);
+          } catch (uploadErr) {
+            console.error('File upload failed for:', file.name, uploadErr);
+            alert(`Failed to upload ${file.name}. The warranty will be saved without this file.`);
+          }
         }
         setUploadingFiles(false);
       }
 
       // 2. Add warranty entry
+      console.log('Adding warranty entry to database...');
       await addWarranty({
         title: formData.title,
         category: formData.category,
@@ -50,9 +64,11 @@ const AddWarranty = () => {
         fileIds,
       });
 
+      console.log('Warranty added successfully, navigating to dashboard.');
       navigate('/dashboard');
     } catch (err) {
-      console.error('Error adding warranty', err);
+      console.error('Error during warranty submission:', err);
+      alert('Failed to save warranty. Please check the console for details.');
     } finally {
       setIsLoading(false);
     }
