@@ -59,8 +59,7 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
           version: '1.0',
           lastUpdated: new Date().toISOString(),
         };
-        const response = await createDatabaseFile(folder.id, initialDb);
-        const result = await response.json();
+        const result = await createDatabaseFile(folder.id, initialDb);
         dbFile = { id: result.id, name: 'database.json' };
       }
       setDbFileId(dbFile.id);
