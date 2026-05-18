@@ -1,9 +1,9 @@
-import React from 'react';
+
 import { Link } from 'react-router-dom';
 import { Shield, LayoutDashboard, LogIn, LogOut } from 'lucide-react';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
-const Navbar: React.FC = () => {
+const Navbar = () => {
   const { isAuthenticated, login, logout } = useGoogleDrive();
 
   return (

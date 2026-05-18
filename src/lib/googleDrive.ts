@@ -16,7 +16,7 @@ export const initGapi = () => {
 };
 
 export const findAppFolder = async () => {
-  const response = await gapi.client.drive.files.list({
+  const response = await (gapi.client as any).drive.files.list({
     q: "name = 'warranty_tracker' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
     fields: 'files(id, name)',
   });
@@ -28,16 +28,15 @@ export const createAppFolder = async () => {
     name: 'warranty_tracker',
     mimeType: 'application/vnd.google-apps.folder',
   };
-  const response = await gapi.client.drive.files.create({
+  const response = await (gapi.client as any).drive.files.create({
     resource: fileMetadata,
     fields: 'id',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any); 
+  }); 
   return response.result;
 };
 
 export const findDatabaseFile = async (folderId: string) => {
-  const response = await gapi.client.drive.files.list({
+  const response = await (gapi.client as any).drive.files.list({
     q: `'${folderId}' in parents and name = 'database.json' and trashed = false`,
     fields: 'files(id, name)',
   });
@@ -45,7 +44,7 @@ export const findDatabaseFile = async (folderId: string) => {
 };
 
 export const readJsonFile = async (fileId: string) => {
-  const response = await gapi.client.drive.files.get({
+  const response = await (gapi.client as any).drive.files.get({
     fileId: fileId,
     alt: 'media',
   });

@@ -1,6 +1,7 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile } from '../lib/googleDrive';
-import { Database, UserInfo, Warranty } from '../types';
+import type { Database, UserInfo, Warranty } from '../types';
 
 interface GoogleDriveContextType {
   isAuthenticated: boolean;
@@ -19,7 +20,7 @@ const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(und
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [database, setDatabase] = useState<Database | null>(null);
@@ -68,7 +69,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
         const client = google.accounts.oauth2.initTokenClient({
           client_id: CLIENT_ID,
           scope: 'https://www.googleapis.com/auth/drive.file',
-          callback: async (response) => {
+          callback: async (response: google.accounts.oauth2.TokenResponse) => {
             if (response.error !== undefined) {
               throw response;
             }
@@ -96,7 +97,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   const logout = () => {
     const token = gapi.auth.getToken();
     if (token) {
-      google.accounts.oauth2.revokeToken(token.access_token, () => {
+      google.accounts.oauth2.revoke(token.access_token, () => {
         setIsAuthenticated(false);
         setUserInfo(null);
         setDatabase(null);

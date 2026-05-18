@@ -1,9 +1,9 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, HardDrive, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const LandingPage: React.FC = () => {
+const LandingPage = () => {
   return (
     <div className="space-y-24 pb-20">
       {/* Hero Section */}

@@ -1,8 +1,8 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { Check, Star } from 'lucide-react';
 
-const PricingPage: React.FC = () => {
+const PricingPage = () => {
   const features = [
     "Unlimited Warranty Entries",
     "Google Drive Cloud Storage",

@@ -1,11 +1,11 @@
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { Plus, Search, Filter, Calendar, Clock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
   const { database, isLoading, isAuthenticated, login } = useGoogleDrive();
 
   if (!isAuthenticated) {

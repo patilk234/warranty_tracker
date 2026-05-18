@@ -1,6 +1,6 @@
-import React from 'react';
 
-const DataUsage: React.FC = () => {
+
+const DataUsage = () => {
   return (
     <div className="max-w-3xl mx-auto py-12 prose dark:prose-invert">
       <h1 className="text-3xl font-bold mb-8">User Data Usage</h1>

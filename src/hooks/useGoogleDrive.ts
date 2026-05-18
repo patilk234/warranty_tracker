@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import { GoogleDriveContext, GoogleDriveContextType } from '../hooks/GoogleDriveContext';
+import { GoogleDriveContext } from './GoogleDriveContext';
+import type { GoogleDriveContextType } from './GoogleDriveContext';
 
 export const useGoogleDrive = (): GoogleDriveContextType => {
   const context = useContext(GoogleDriveContext);

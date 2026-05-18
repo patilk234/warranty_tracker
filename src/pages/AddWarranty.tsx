@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent, ChangeEvent } from 'react';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { uploadFile } from '../lib/googleDrive';
 
-const AddWarranty: React.FC = () => {
+const AddWarranty = () => {
   const navigate = useNavigate();
   const { addWarranty, folderId } = useGoogleDrive();
 
@@ -21,7 +22,7 @@ const AddWarranty: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!folderId) return;
     setIsLoading(true);
@@ -57,7 +58,7 @@ const AddWarranty: React.FC = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       setFiles(prev => [...prev, ...Array.from(e.target.files!)]);
     }
