@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile } from '../lib/googleDrive';
 import type { Database, UserInfo, Warranty } from '../types';
 
@@ -21,6 +22,7 @@ const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(und
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [database, setDatabase] = useState<Database | null>(null);
@@ -30,16 +32,28 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   const [tokenClient, setTokenClient] = useState<google.accounts.oauth2.TokenClient | null>(null);
 
   const initializeAppData = async () => {
+    console.log('Starting app data initialization...');
     setIsLoading(true);
     try {
       let folder = await findAppFolder();
+      console.log('findAppFolder result:', folder);
       if (!folder) {
+        console.log('Folder not found, creating one...');
         folder = await createAppFolder();
+        console.log('createAppFolder result:', folder);
       }
+      
+      if (!folder || !folder.id) {
+        throw new Error('Failed to obtain folder ID from Google Drive');
+      }
+      
       setFolderId(folder.id);
+      console.log('Using folder ID:', folder.id);
 
       let dbFile = await findDatabaseFile(folder.id);
+      console.log('findDatabaseFile result:', dbFile);
       if (!dbFile) {
+        console.log('database.json not found, creating initial database...');
         const initialDb: Database = {
           warranties: [],
           version: '1.0',
@@ -52,9 +66,11 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
       setDbFileId(dbFile.id);
 
       const dbData = await readJsonFile(dbFile.id);
+      console.log('Loaded database content:', dbData);
       setDatabase(dbData as Database);
     } catch (err) {
-      console.error('Error initializing app data', err);
+      console.error('Error in initializeAppData:', err);
+      alert('Failed to initialize app storage. Please check the browser console for details.');
     } finally {
       setIsLoading(false);
     }
@@ -63,13 +79,12 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeGis = () => {
       if (!window.google?.accounts?.oauth2) {
-        console.log('GIS not ready, retrying in 100ms...');
         setTimeout(initializeGis, 100);
         return;
       }
 
       if (!CLIENT_ID || CLIENT_ID === 'your_google_client_id_here' || CLIENT_ID === 'undefined') {
-        console.error('CRITICAL: Google Client ID is missing or undefined.');
+        console.error('Google Client ID is missing.');
         setIsLoading(false);
         return;
       }
@@ -80,17 +95,26 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
           scope: 'https://www.googleapis.com/auth/drive.file',
           callback: async (response: google.accounts.oauth2.TokenResponse) => {
             if (response.error !== undefined) {
-              console.error('GIS Error:', response);
+              console.error('GIS Error Response:', response);
               return;
             }
+            
+            console.log('OAuth token received successfully.');
+            // Sync token with GAPI
+            gapi.client.setToken(response);
+            
             setIsAuthenticated(true);
             await initializeAppData();
+            
+            // Redirect to dashboard after everything is initialized
+            console.log('Initialization complete, redirecting to dashboard...');
+            navigate('/dashboard');
           },
         });
         setTokenClient(client);
         setIsLoading(false);
       } catch (err) {
-        console.error('Error initializing GIS', err);
+        console.error('Error initializing GIS client:', err);
         setIsLoading(false);
       }
     };
@@ -100,28 +124,18 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
         await initGapi();
         initializeGis();
       } catch (err) {
-        console.error('Error initializing GAPI', err);
+        console.error('Error initializing GAPI:', err);
         setIsLoading(false);
       }
     };
     start();
-  }, []);
+  }, [navigate]);
 
   const login = () => {
     if (tokenClient) {
-      try {
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-      } catch (err) {
-        console.error('Login request failed', err);
-        alert('Login failed to start. Please check if popups are blocked.');
-      }
+      tokenClient.requestAccessToken({ prompt: 'consent' });
     } else {
-      console.error('Login clicked but tokenClient not initialized.');
-      if (!CLIENT_ID) {
-        alert('Google Client ID is missing. Please set VITE_GOOGLE_CLIENT_ID in your GitHub Secrets.');
-      } else {
-        alert('Google login is still initializing. Please wait a few seconds and try again.');
-      }
+      alert('Login system is still loading. Please try again in a moment.');
     }
   };
 
@@ -132,15 +146,18 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
         setIsAuthenticated(false);
         setUserInfo(null);
         setDatabase(null);
+        setFolderId(null);
+        setDbFileId(null);
+        navigate('/');
       });
     }
   };
 
   const addWarranty = async (warrantyData: Omit<Warranty, 'id' | 'createdAt'>) => {
-    console.log('addWarranty called with:', warrantyData);
+    console.log('addWarranty logic starting...', warrantyData);
     if (!database || !dbFileId) {
-      console.error('addWarranty failed: database or dbFileId is missing', { database: !!database, dbFileId: !!dbFileId });
-      return;
+      console.error('Missing database or dbFileId', { database: !!database, dbFileId: !!dbFileId });
+      throw new Error('Database not initialized');
     }
 
     const newWarranty: Warranty = {
@@ -155,15 +172,8 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
       lastUpdated: new Date().toISOString(),
     };
 
-    try {
-      console.log('Attempting to write updated database to Google Drive...');
-      await writeJsonFile(dbFileId, updatedDb);
-      setDatabase(updatedDb);
-      console.log('Successfully saved warranty and updated local state.');
-    } catch (err) {
-      console.error('Failed to write database file to Drive:', err);
-      throw err;
-    }
+    await writeJsonFile(dbFileId, updatedDb);
+    setDatabase(updatedDb);
   };
 
   const updateWarranty = async (updatedWarranty: Warranty) => {
