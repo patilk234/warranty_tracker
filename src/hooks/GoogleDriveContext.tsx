@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile } from '../lib/googleDrive';
+import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile, setAccessToken } from '../lib/googleDrive';
 import type { Database, UserInfo, Warranty } from '../types';
 
 interface GoogleDriveContextType {
@@ -100,8 +100,9 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
             }
             
             console.log('OAuth token received successfully.');
-            // Sync token with GAPI
-            gapi.client.setToken(response);
+            
+            // Set token for our fetch calls
+            setAccessToken(response.access_token);
             
             setIsAuthenticated(true);
             await initializeAppData();
