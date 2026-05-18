@@ -11,7 +11,7 @@ const Layout = () => {
       </main>
       <footer className="border-t border-slate-200 dark:border-slate-800 py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-slate-500 text-sm">© 2026 Warracker. All rights reserved.</p>
+          <p className="text-slate-500 text-sm">© 2026 warranty-tracker. All rights reserved.</p>
           <div className="flex gap-6 text-sm text-slate-500">
             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link to="/data-usage" className="hover:text-primary transition-colors">Data Usage</Link>

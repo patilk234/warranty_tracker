@@ -1,8 +1,10 @@
 
 import { motion } from 'framer-motion';
 import { Check, Star } from 'lucide-react';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 const PricingPage = () => {
+  const { login } = useGoogleDrive();
   const features = [
     "Unlimited Warranty Entries",
     "Google Drive Cloud Storage",
@@ -19,7 +21,7 @@ const PricingPage = () => {
       <div className="max-w-4xl mx-auto text-center space-y-4 mb-16">
         <h1 className="text-4xl md:text-5xl font-bold">Simple, Transparent Pricing</h1>
         <p className="text-xl text-slate-600 dark:text-slate-400">
-          The best things in life are free. Warracker is open-source and free forever.
+          The best things in life are free. warranty-tracker is open-source and free forever.
         </p>
       </div>
 
@@ -48,7 +50,10 @@ const PricingPage = () => {
               Complete access to all features without any hidden costs or subscriptions.
             </p>
 
-            <button className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
+            <button 
+              onClick={login}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+            >
               Get Started Now
             </button>
 
@@ -67,7 +72,7 @@ const PricingPage = () => {
       </div>
 
       <div className="mt-20 text-center text-slate-500 text-sm">
-        * Warracker is a static client-side application. We do not store any of your data on our servers.
+        * warranty-tracker is a static client-side application. We do not store any of your data on our servers.
       </div>
     </div>
   );

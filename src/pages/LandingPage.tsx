@@ -2,8 +2,11 @@
 import { motion } from 'framer-motion';
 import { ShieldCheck, Zap, HardDrive, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useGoogleDrive } from '../hooks/useGoogleDrive';
 
 const LandingPage = () => {
+  const { login } = useGoogleDrive();
+
   return (
     <div className="space-y-24 pb-20">
       {/* Hero Section */}
@@ -43,7 +46,10 @@ const LandingPage = () => {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
-            <button className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2">
+            <button 
+              onClick={login}
+              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2"
+            >
               Get Started for Free <ArrowRight className="w-5 h-5" />
             </button>
             <Link to="/pricing" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold text-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">

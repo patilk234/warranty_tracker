@@ -8,13 +8,13 @@ const DataUsage = () => {
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold">How we use your data</h2>
         <p>
-          Warracker's use of information received from Google APIs will adhere to the 
+          warranty-tracker's use of information received from Google APIs will adhere to the 
           <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes" target="_blank" className="text-indigo-600 hover:underline"> Google API Service User Data Policy</a>, 
           including the Limited Use requirements.
         </p>
 
         <h3 className="text-xl font-semibold">1. OAuth Scopes Requested</h3>
-        <p>We only request the <code>https://www.googleapis.com/auth/drive.file</code> scope. This is the most restrictive Drive scope, allowing us only to access files that were created by Warracker or opened with Warracker.</p>
+        <p>We only request the <code>https://www.googleapis.com/auth/drive.file</code> scope. This is the most restrictive Drive scope, allowing us only to access files that were created by warranty-tracker or opened with warranty-tracker.</p>
 
         <h3 className="text-xl font-semibold">2. Purpose of Access</h3>
         <p>We access your Google Drive for the sole purpose of providing a cloud-synced storage backend for your warranty information. This includes:</p>

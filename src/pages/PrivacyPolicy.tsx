@@ -9,14 +9,14 @@ const PrivacyPolicy = () => {
       <section className="space-y-6">
         <h2 className="text-2xl font-semibold">1. Introduction</h2>
         <p>
-          Warracker is a static web application designed to help users track their product warranties. 
+          warranty-tracker is a static web application designed to help users track their product warranties. 
           We value your privacy and are committed to protecting your personal data. 
           This Privacy Policy explains how our application interacts with your data.
         </p>
 
         <h2 className="text-2xl font-semibold">2. Data Ownership and Storage</h2>
         <p>
-          Warracker is a <strong>serverless</strong> application. We do not maintain any databases or servers 
+          warranty-tracker is a <strong>serverless</strong> application. We do not maintain any databases or servers 
           that store your personal information, warranty details, or uploaded files. 
           All data is stored directly in your personal <strong>Google Drive</strong> account.
         </p>
@@ -24,7 +24,7 @@ const PrivacyPolicy = () => {
         <h2 className="text-2xl font-semibold">3. Google Drive Integration</h2>
         <p>
           Our application requests access to your Google Drive via the <code>drive.file</code> scope. 
-          This scope allows Warracker to:
+          This scope allows warranty-tracker to:
         </p>
         <ul className="list-disc pl-6 space-y-2">
           <li>Create a folder named "warranty_tracker" in your Google Drive.</li>
@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
           <li>Upload and manage receipt photos and documents you explicitly add to the app.</li>
         </ul>
         <p>
-          Warracker <strong>cannot</strong> see or access any other files in your Google Drive 
+          warranty-tracker <strong>cannot</strong> see or access any other files in your Google Drive 
           that were not created by this application.
         </p>
 
