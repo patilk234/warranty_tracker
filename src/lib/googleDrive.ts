@@ -1,11 +1,10 @@
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 
-export const initGapi = (apiKey: string) => {
+export const initGapi = () => {
   return new Promise<void>((resolve, reject) => {
     gapi.load('client', async () => {
       try {
         await gapi.client.init({
-          apiKey: apiKey,
           discoveryDocs: DISCOVERY_DOCS,
         });
         resolve();

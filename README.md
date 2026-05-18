@@ -29,7 +29,6 @@ To make this app work, you must set up a project in the Google Cloud Console:
 
 4.  **Create Credentials:**
     - Go to **APIs & Services > Credentials**.
-    - Click **Create Credentials > API Key**. Copy this as your `VITE_GOOGLE_API_KEY`.
     - Click **Create Credentials > OAuth client ID**.
     - Select **Application type: Web application**.
     - **Authorized JavaScript origins:** Add `https://<your-username>.github.io` and `http://localhost:5173`.
@@ -39,9 +38,8 @@ To make this app work, you must set up a project in the Google Cloud Console:
 
 1.  **GitHub Secrets:**
     - In your GitHub repository, go to **Settings > Secrets and variables > Actions**.
-    - Add the following secrets:
+    - Add the following secret:
         - `VITE_GOOGLE_CLIENT_ID`: Your Client ID from step 4.
-        - `VITE_GOOGLE_API_KEY`: Your API Key from step 4.
 
 2.  **Push to Main:**
     - Once you push your code to the `main` branch, the GitHub Action will automatically build and deploy the app to the `gh-pages` branch.

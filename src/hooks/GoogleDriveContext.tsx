@@ -18,7 +18,6 @@ interface GoogleDriveContextType {
 const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(undefined);
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
 export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -63,7 +62,7 @@ export const GoogleDriveProvider: React.FC<{ children: ReactNode }> = ({ childre
   useEffect(() => {
     const start = async () => {
       try {
-        await initGapi(API_KEY);
+        await initGapi();
         
         // Initialize GIS Token Client
         const client = google.accounts.oauth2.initTokenClient({
