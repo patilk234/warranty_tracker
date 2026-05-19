@@ -8,16 +8,16 @@ const LandingPage = () => {
   const { login } = useGoogleDrive();
 
   return (
-    <div className="space-y-24 pb-20">
+    <div className="space-y-32 pb-24 pt-12">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
+      <section className="relative px-4">
+        <div className="max-w-5xl mx-auto neo-outset p-12 md:p-20 text-center space-y-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="px-4 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm font-semibold border border-indigo-100 dark:border-indigo-800">
+            <span className="px-6 py-2 rounded-full neo-inset text-indigo-600 dark:text-indigo-400 text-sm font-bold tracking-wide uppercase">
               Modern Warranty Management
             </span>
           </motion.div>
@@ -26,33 +26,36 @@ const LandingPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white"
+            className="text-5xl md:text-8xl font-black tracking-tighter text-slate-800 dark:text-white leading-none"
           >
-            Never Lose a <span className="text-indigo-600">Warranty</span> Again.
+            Never Lose a <span className="text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-violet-600">Warranty</span> Again.
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium"
           >
-            Store your receipts, track expiration dates, and manage all your product warranties in one secure place. Powered by your own Google Drive.
+            Store receipts, track expirations, and manage everything in one secure place. Powered by your private Google Drive.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-8 justify-center items-center pt-4"
           >
             <button 
               onClick={login}
-              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-10 py-5 bg-indigo-600 text-white rounded-2xl font-black text-xl transition-all shadow-[6px_6px_12px_rgba(79,70,229,0.3)] hover:shadow-[8px_8px_20px_rgba(79,70,229,0.4)] active:scale-95 flex items-center justify-center gap-3"
             >
-              Get Started for Free <ArrowRight className="w-5 h-5" />
+              Get Started Free <ArrowRight className="w-6 h-6" />
             </button>
-            <Link to="/pricing" className="w-full sm:w-auto px-8 py-4 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold text-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95">
+            <Link 
+              to="/pricing" 
+              className="w-full sm:w-auto px-10 py-5 neo-button text-slate-800 dark:text-white rounded-2xl font-black text-xl"
+            >
               View Pricing
             </Link>
           </motion.div>
@@ -60,37 +63,37 @@ const LandingPage = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="grid md:grid-cols-3 gap-8">
+      <section className="grid md:grid-cols-3 gap-12 px-4 max-w-7xl mx-auto">
         {[
           {
-            icon: <HardDrive className="w-8 h-8 text-indigo-500" />,
+            icon: <HardDrive className="w-10 h-10 text-indigo-500" />,
             title: "Private Storage",
             description: "All your data stays in your personal Google Drive. We never see or store your sensitive information."
           },
           {
-            icon: <ShieldCheck className="w-8 h-8 text-emerald-500" />,
+            icon: <ShieldCheck className="w-10 h-10 text-emerald-500" />,
             title: "Safe & Secure",
             description: "Encrypted by Google's infrastructure. Authentication is handled entirely by Google Identity Services."
           },
           {
-            icon: <Zap className="w-8 h-8 text-amber-500" />,
+            icon: <Zap className="w-10 h-10 text-amber-500" />,
             title: "Smooth Experience",
-            description: "Clean, modern UI with drag-and-drop file uploads and beautiful animations."
+            description: "Clean, modern UI with drag-and-drop file uploads and beautiful soft-touch animations."
           }
         ].map((feature, index) => (
           <motion.div
             key={index}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: index * 0.1 }}
-            className="p-8 rounded-2xl bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50 transition-colors group"
+            className="neo-outset p-10 flex flex-col items-center text-center group hover:neo-inset transition-all duration-300"
           >
-            <div className="mb-4 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 w-fit group-hover:scale-110 transition-transform">
+            <div className="mb-6 p-5 neo-inset rounded-2xl group-hover:neo-outset transition-all duration-300">
               {feature.icon}
             </div>
-            <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-            <p className="text-slate-600 dark:text-slate-400">{feature.description}</p>
+            <h3 className="text-2xl font-black mb-4 tracking-tight">{feature.title}</h3>
+            <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed">{feature.description}</p>
           </motion.div>
         ))}
       </section>

@@ -2,34 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer base {
+  :root {
+    --bg-light: #e0e5ec;
+    --shadow-dark-light: #a3b1c6;
+    --shadow-light-light: #ffffff;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+    --bg-dark: #2d3436;
+    --shadow-dark-dark: #212829;
+    --shadow-light-dark: #394043;
+    
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  }
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    @apply bg-[#e0e5ec] text-slate-800 transition-colors duration-300;
+  }
+
+  .dark body {
+    @apply bg-[#2d3436] text-slate-200;
+  }
+}
+
+@layer components {
+  .neo-outset {
+    @apply bg-[#e0e5ec] shadow-[9px_9px_16px_#a3b1c6,-9px_-9px_16px_#ffffff] rounded-2xl;
+  }
+
+  .dark .neo-outset {
+    @apply bg-[#2d3436] shadow-[9px_9px_16px_#212829,-9px_-9px_16px_#394043];
+  }
+
+  .neo-inset {
+    @apply bg-[#e0e5ec] shadow-[inset_9px_9px_16px_#a3b1c6,inset_-9px_-9px_16px_#ffffff] rounded-2xl;
+  }
+
+  .dark .neo-inset {
+    @apply bg-[#2d3436] shadow-[inset_9px_9px_16px_#212829,inset_-9px_-9px_16px_#394043];
+  }
+
+  .neo-button {
+    @apply neo-outset px-6 py-3 font-semibold transition-all duration-200 active:neo-inset active:scale-95;
+  }
+
+  .neo-input {
+    @apply neo-inset px-4 py-3 outline-none border-none focus:ring-2 focus:ring-indigo-500/50;
+  }
 }
 
 #root {
   width: 100%;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
 }

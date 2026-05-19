@@ -1,5 +1,7 @@
+
 import { useState } from 'react';
 import type { ChangeEvent } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Upload, X, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
@@ -85,122 +87,133 @@ const AddWarranty = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <Link to="/dashboard" className="inline-flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors">
-        <ArrowLeft className="w-4 h-4" />
+    <div className="max-w-3xl mx-auto space-y-12 pb-24 pt-8 px-4">
+      <Link to="/dashboard" className="inline-flex items-center gap-2 font-black text-slate-500 hover:text-indigo-600 transition-colors uppercase tracking-widest text-sm">
+        <ArrowLeft className="w-5 h-5" />
         Back to Dashboard
       </Link>
 
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Add New Warranty</h1>
-        <p className="text-slate-600 dark:text-slate-400">Fill in the details and upload your receipt.</p>
+      <div className="space-y-3">
+        <h1 className="text-4xl font-black tracking-tight text-slate-800 dark:text-white leading-none">Add New Warranty</h1>
+        <p className="text-slate-600 dark:text-slate-400 font-bold">Securely store your product details.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Product Name</label>
-            <input 
-              required
-              type="text" 
-              placeholder="e.g. MacBook Pro"
-              className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              value={formData.title}
-              onChange={e => setFormData({ ...formData, title: e.target.value })}
-            />
+      <form onSubmit={handleSubmit} className="space-y-10">
+        <div className="neo-outset p-10 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-3">
+              <label className="text-sm font-black uppercase tracking-widest text-slate-500 ml-1">Product Name</label>
+              <input 
+                required
+                type="text" 
+                placeholder="e.g. MacBook Pro"
+                className="w-full neo-input rounded-2xl p-4 font-bold text-slate-700 dark:text-slate-200 placeholder:text-slate-400 bg-inherit"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm font-black uppercase tracking-widest text-slate-500 ml-1">Category</label>
+              <select 
+                className="w-full neo-input rounded-2xl p-4 font-bold text-slate-700 dark:text-slate-200 bg-inherit appearance-none cursor-pointer"
+                value={formData.category}
+                onChange={e => setFormData({ ...formData, category: e.target.value })}
+              >
+                <option>Electronics</option>
+                <option>Appliances</option>
+                <option>Vehicles</option>
+                <option>Furniture</option>
+                <option>Other</option>
+              </select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Category</label>
-            <select 
-              className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              value={formData.category}
-              onChange={e => setFormData({ ...formData, category: e.target.value })}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-3">
+              <label className="text-sm font-black uppercase tracking-widest text-slate-500 ml-1">Purchase Date</label>
+              <input 
+                required
+                type="date" 
+                className="w-full neo-input rounded-2xl p-4 font-bold text-slate-700 dark:text-slate-200 bg-inherit"
+                value={formData.purchaseDate}
+                onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-3">
+              <label className="text-sm font-black uppercase tracking-widest text-slate-500 ml-1">Duration (Months)</label>
+              <input 
+                required
+                type="number" 
+                className="w-full neo-input rounded-2xl p-4 font-bold text-slate-700 dark:text-slate-200 bg-inherit"
+                value={formData.durationMonths}
+                onChange={e => setFormData({ ...formData, durationMonths: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-black uppercase tracking-widest text-slate-500 ml-1">Receipts & Photos</label>
+            <div 
+              className="neo-inset rounded-3xl p-12 text-center relative group hover:neo-outset transition-all duration-300 border-2 border-dashed border-slate-300 dark:border-slate-700"
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => {
+                e.preventDefault();
+                if (e.dataTransfer.files) {
+                  setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+                }
+              }}
             >
-              <option>Electronics</option>
-              <option>Appliances</option>
-              <option>Vehicles</option>
-              <option>Furniture</option>
-              <option>Other</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Purchase Date</label>
-            <input 
-              required
-              type="date" 
-              className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              value={formData.purchaseDate}
-              onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Duration (Months)</label>
-            <input 
-              required
-              type="number" 
-              className="w-full p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              value={formData.durationMonths}
-              onChange={e => setFormData({ ...formData, durationMonths: Number(e.target.value) })}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-semibold">Receipts & Photos</label>
-          <div 
-            className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 text-center hover:border-indigo-500 transition-colors relative"
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => {
-              e.preventDefault();
-              if (e.dataTransfer.files) {
-                setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-              }
-            }}
-          >
-            <input 
-              type="file" 
-              multiple 
-              className="absolute inset-0 opacity-0 cursor-pointer" 
-              onChange={handleFileChange}
-            />
-            <div className="space-y-2">
-              <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-              <p className="text-sm text-slate-500">
-                <span className="text-indigo-600 font-bold">Click to upload</span> or drag and drop
-              </p>
-              <p className="text-xs text-slate-400">PNG, JPG or PDF up to 10MB</p>
-            </div>
-          </div>
-
-          {files.length > 0 && (
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              {files.map((file, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700">
-                  <span className="text-xs truncate max-w-[150px]">{file.name}</span>
-                  <button type="button" onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500">
-                    <X className="w-4 h-4" />
-                  </button>
+              <input 
+                type="file" 
+                multiple 
+                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                onChange={handleFileChange}
+              />
+              <div className="space-y-4">
+                <div className="p-5 neo-outset rounded-2xl w-fit mx-auto group-hover:neo-inset transition-all">
+                  <Upload className="w-10 h-10 text-indigo-600 dark:text-indigo-400" />
                 </div>
-              ))}
+                <div className="space-y-1">
+                  <p className="text-lg font-black tracking-tight">
+                    <span className="text-indigo-600">Drop files here</span> or click to upload
+                  </p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">PNG, JPG or PDF up to 10MB</p>
+                </div>
+              </div>
             </div>
-          )}
+
+            {files.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+                {files.map((file, i) => (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key={i} 
+                    className="flex items-center justify-between p-4 neo-inset rounded-xl bg-inherit"
+                  >
+                    <span className="text-xs font-black truncate max-w-[200px] uppercase tracking-wider">{file.name}</span>
+                    <button type="button" onClick={() => removeFile(i)} className="p-1.5 neo-button rounded-lg !p-1 bg-inherit text-red-500">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <button 
           disabled={isLoading}
           type="submit" 
-          className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-6 bg-indigo-600 text-white rounded-3xl font-black text-2xl transition-all shadow-[8px_8px_20px_rgba(79,70,229,0.3)] hover:shadow-[10px_10px_30px_rgba(79,70,229,0.4)] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              {uploadingFiles ? 'Uploading Files...' : 'Saving Warranty...'}
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="uppercase tracking-widest">{uploadingFiles ? 'Uploading...' : 'Saving...'}</span>
             </>
           ) : (
-            'Save Warranty'
+            <span className="uppercase tracking-widest">Save Warranty</span>
           )}
         </button>
       </form>
