@@ -4,7 +4,8 @@ import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import type { Warranty } from '../types';
 
 const ENTRIES_PER_PAGE = 10;
 
@@ -15,9 +16,50 @@ const Dashboard = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
+  const warranties = useMemo(() => database?.warranties || [], [database?.warranties]);
+  
+  const { activeWarranties, expiredWarranties, expiringSoon } = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const active: Warranty[] = [];
+    const expired: Warranty[] = [];
+    const soon: Warranty[] = [];
+
+    warranties.forEach(w => {
+      const purchaseDate = new Date(w.purchaseDate);
+      const expiryDate = new Date(purchaseDate);
+      // Ensure durationMonths is treated as a number to avoid string concatenation
+      const durationMonths = Number(w.durationMonths) || 0;
+      expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
+      expiryDate.setHours(23, 59, 59, 999); 
+
+      if (expiryDate.getTime() >= now.getTime()) {
+        active.push(w);
+        const diffTime = expiryDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays <= 30) {
+          soon.push(w);
+        }
+      } else {
+        expired.push(w);
+      }
+    });
+
+    return { activeWarranties: active, expiredWarranties: expired, expiringSoon: soon };
+  }, [warranties]);
+
+  const filteredWarranties = useMemo(() => warranties.filter(w => 
+    w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    w.category.toLowerCase().includes(searchQuery.toLowerCase())
+  ), [warranties, searchQuery]);
+
+  const paginatedWarranties = useMemo(() => {
+    const startIndex = (currentPage - 1) * ENTRIES_PER_PAGE;
+    return filteredWarranties.slice(startIndex, startIndex + ENTRIES_PER_PAGE);
+  }, [currentPage, filteredWarranties]);
+  
+  const totalPages = Math.ceil(filteredWarranties.length / ENTRIES_PER_PAGE);
 
   if (!isAuthenticated) {
     return (
@@ -57,51 +99,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const warranties = database?.warranties || [];
-  
-  const { activeWarranties, expiredWarranties, expiringSoon } = useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    const active: any[] = [];
-    const expired: any[] = [];
-    const soon: any[] = [];
-
-    warranties.forEach(w => {
-      const purchaseDate = new Date(w.purchaseDate);
-      const expiryDate = new Date(purchaseDate);
-      // Ensure durationMonths is treated as a number to avoid string concatenation
-      const durationMonths = Number(w.durationMonths) || 0;
-      expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
-      expiryDate.setHours(23, 59, 59, 999); 
-
-      if (expiryDate.getTime() >= now.getTime()) {
-        active.push(w);
-        const diffTime = expiryDate.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        if (diffDays <= 30) {
-          soon.push(w);
-        }
-      } else {
-        expired.push(w);
-      }
-    });
-
-    return { activeWarranties: active, expiredWarranties: expired, expiringSoon: soon };
-  }, [warranties]);
-
-  const filteredWarranties = useMemo(() => warranties.filter(w => 
-    w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    w.category.toLowerCase().includes(searchQuery.toLowerCase())
-  ), [warranties, searchQuery]);
-
-  const paginatedWarranties = useMemo(() => {
-    const startIndex = (currentPage - 1) * ENTRIES_PER_PAGE;
-    return filteredWarranties.slice(startIndex, startIndex + ENTRIES_PER_PAGE);
-  }, [currentPage, filteredWarranties]);
-  
-  const totalPages = Math.ceil(filteredWarranties.length / ENTRIES_PER_PAGE);
 
   const handlePageChange = (newPage: number) => {
     if (newPage > 0 && newPage <= totalPages) {
@@ -198,7 +195,10 @@ const Dashboard = () => {
               placeholder="Search warranties..." 
               className="flex-1 bg-transparent border-none outline-none font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
             />
             <button className="p-4 neo-button rounded-xl !p-3 mr-1 bg-[#e0e5ec] dark:bg-[#2d3436]">
               <Filter className="w-5 h-5 text-slate-500" />

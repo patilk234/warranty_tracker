@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { ArrowLeft, Upload, X, Loader2, Save } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
