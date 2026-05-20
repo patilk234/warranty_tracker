@@ -1,6 +1,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight, FileText, Download, Loader2, X, Eye, Tag, FileInfo } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight, FileText, Download, Loader2, X, Eye, Tag } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -522,7 +522,7 @@ const Dashboard = () => {
                     currentFiles.map((file, idx) => (
                       <div key={idx} className="neo-inset p-4 flex items-center justify-between group hover:neo-outset transition-all">
                         <div className="flex items-center gap-3">
-                          <FileInfo className="w-5 h-5 text-indigo-500" />
+                          <FileText className="w-5 h-5 text-indigo-500" />
                           <span className="font-bold text-sm truncate max-w-[300px]">{file.name}</span>
                         </div>
                         <div className="flex items-center gap-2">
