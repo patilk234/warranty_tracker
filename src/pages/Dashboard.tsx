@@ -1,16 +1,17 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, X, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { database, isLoading, isAuthenticated, login, deleteWarranty } = useGoogleDrive();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   if (!isAuthenticated) {
     return (
@@ -53,28 +54,44 @@ const Dashboard = () => {
 
   const warranties = database?.warranties || [];
   
+  // Refined Logic for Expiration
+  const { activeWarranties, expiredWarranties, expiringSoon } = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+
+    const active: any[] = [];
+    const expired: any[] = [];
+    const soon: any[] = [];
+
+    warranties.forEach(w => {
+      const expiryDate = new Date(w.purchaseDate);
+      expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
+      expiryDate.setHours(23, 59, 59, 999); // End of the expiry day
+
+      const diffTime = expiryDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      if (diffTime >= 0) {
+        active.push(w);
+        if (diffDays <= 30) {
+          soon.push(w);
+        }
+      } else {
+        expired.push(w);
+      }
+    });
+
+    return { activeWarranties: active, expiredWarranties: expired, expiringSoon: soon };
+  }, [warranties]);
+
   const filteredWarranties = warranties.filter(w => 
     w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeWarranties = warranties.filter(w => {
-    const expiryDate = new Date(w.purchaseDate);
-    expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
-    return expiryDate > new Date();
-  });
-
-  const expiringSoon = warranties.filter(w => {
-    const expiryDate = new Date(w.purchaseDate);
-    expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
-    const diffTime = expiryDate.getTime() - new Date().getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 && diffDays <= 30;
-  });
-
   const chartData = [
     { name: 'Active', value: activeWarranties.length, color: '#4f46e5' },
-    { name: 'Expired', value: warranties.length - activeWarranties.length, color: '#ef4444' },
+    { name: 'Expired', value: expiredWarranties.length, color: '#ef4444' },
   ];
 
   return (
@@ -153,11 +170,13 @@ const Dashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="neo-outset p-6 flex items-center justify-between hover:neo-inset transition-all duration-200 group relative"
+                  onMouseEnter={() => setHoveredId(w.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  className="neo-outset p-6 flex items-center justify-between hover:neo-inset transition-all duration-200 group relative overflow-hidden"
                 >
                   <div className="flex items-center gap-6">
                     <div className="w-16 h-16 neo-inset rounded-2xl flex items-center justify-center">
-                      <ShieldCheck className="w-8 h-8 text-indigo-600" />
+                      <ShieldCheck className={`w-8 h-8 ${activeWarranties.includes(w) ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </div>
                     <div className="space-y-1">
                       <h4 className="text-xl font-black tracking-tight">{w.title}</h4>
@@ -167,60 +186,89 @@ const Dashboard = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
-                    <div className="hidden sm:block neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
-                      {w.durationMonths} MO
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => navigate(`/edit/${w.id}`)}
-                        className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-slate-600 hover:text-indigo-600 transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="w-5 h-5" />
-                      </button>
-                      <button 
-                        onClick={() => setIsDeleting(w.id)}
-                        className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-slate-600 hover:text-red-500 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-4 relative min-w-[120px] h-12 justify-end">
+                    <AnimatePresence mode="wait">
+                      {hoveredId !== w.id ? (
+                        <motion.div
+                          key="badge"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="neo-inset px-6 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide flex items-center gap-2"
+                        >
+                          {w.durationMonths} MO
+                          <ChevronRight className="w-4 h-4 text-slate-300" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="actions"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center gap-3"
+                        >
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/edit/${w.id}`);
+                            }}
+                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                            title="Edit Warranty"
+                          >
+                            <Edit className="w-5 h-5" />
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsDeleting(w.id);
+                            }}
+                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                            title="Delete Warranty"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Delete Confirmation Overlay */}
                   <AnimatePresence>
                     {isDeleting === w.id && (
                       <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="absolute inset-0 z-10 bg-[#e0e5ec]/95 dark:bg-[#2d3436]/95 rounded-2xl flex items-center justify-between px-8"
+                        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                        animate={{ opacity: 1, backdropFilter: 'blur(4px)' }}
+                        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                        className="absolute inset-0 z-20 bg-[#e0e5ec]/90 dark:bg-[#2d3436]/90 rounded-2xl flex items-center justify-between px-8"
                       >
                         <div className="flex items-center gap-4">
                           <div className="p-3 neo-inset rounded-xl text-red-500">
                             <AlertTriangle className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Delete this warranty?</p>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">This action cannot be undone.</p>
+                            <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Confirm Delete?</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Permanent action</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <button 
-                            onClick={() => setIsDeleting(null)}
-                            className="px-6 py-2.5 neo-button rounded-xl text-sm font-black uppercase tracking-widest bg-inherit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsDeleting(null);
+                            }}
+                            className="px-5 py-2.5 neo-button rounded-xl text-xs font-black uppercase tracking-widest bg-inherit"
                           >
                             Cancel
                           </button>
                           <button 
-                            onClick={async () => {
+                            onClick={async (e) => {
+                              e.stopPropagation();
                               await deleteWarranty(w.id);
                               setIsDeleting(null);
                             }}
-                            className="px-6 py-2.5 bg-red-500 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-red-500/30 active:scale-95"
+                            className="px-5 py-2.5 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/30 active:scale-95"
                           >
                             Delete
                           </button>
