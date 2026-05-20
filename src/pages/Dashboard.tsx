@@ -1,6 +1,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight, FileText, Download, Loader2, X } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight, FileText, Download, Loader2, X, Eye, Tag, FileInfo } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -16,7 +16,7 @@ const Dashboard = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   
-  const [viewingFilesId, setViewingFilesId] = useState<string | null>(null);
+  const [viewingWarranty, setViewingWarranty] = useState<Warranty | null>(null);
   const [currentFiles, setCurrentFiles] = useState<{name: string, webViewLink: string, webContentLink?: string}[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
@@ -64,17 +64,19 @@ const Dashboard = () => {
   
   const totalPages = Math.ceil(filteredWarranties.length / ENTRIES_PER_PAGE);
 
-  const handleViewFiles = async (w: Warranty) => {
-    setViewingFilesId(w.id);
-    setIsLoadingFiles(true);
-    setCurrentFiles([]);
-    try {
-      const files = await Promise.all(w.fileIds.map(id => getFileMetadata(id)));
-      setCurrentFiles(files);
-    } catch (err) {
-      console.error('Error fetching file metadata:', err);
-    } finally {
-      setIsLoadingFiles(false);
+  const handleViewDetails = async (w: Warranty) => {
+    setViewingWarranty(w);
+    if (w.fileIds && w.fileIds.length > 0) {
+      setIsLoadingFiles(true);
+      setCurrentFiles([]);
+      try {
+        const files = await Promise.all(w.fileIds.map(id => getFileMetadata(id)));
+        setCurrentFiles(files);
+      } catch (err) {
+        console.error('Error fetching file metadata:', err);
+      } finally {
+        setIsLoadingFiles(false);
+      }
     }
   };
 
@@ -87,6 +89,7 @@ const Dashboard = () => {
     
     const remainingMs = Math.max(0, expiryTime - now);
     const remainingMonths = remainingMs / (30.44 * 24 * 60 * 60 * 1000);
+    const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000));
     
     // Progress is relative to a standard 12-month period
     const twelveMonthsMs = 12 * 30.44 * 24 * 60 * 60 * 1000;
@@ -99,7 +102,7 @@ const Dashboard = () => {
     else if (remainingMonths < 6) colorClass = 'bg-yellow-500'; // Medium (< 6 mo)
     else if (remainingMonths < 12) colorClass = 'bg-lime-500'; // Good (< 12 mo)
     
-    return { percentage, colorClass, remainingMonths };
+    return { percentage, colorClass, remainingMonths, remainingDays, expiryDate: new Date(expiryTime) };
   };
 
   if (!isAuthenticated) {
@@ -271,9 +274,19 @@ const Dashboard = () => {
                         </div>
                         <div className="space-y-1 flex-1 min-w-0">
                           <h4 className="text-xl font-black tracking-tight truncate">{w.title}</h4>
-                          <p className="text-sm font-bold text-slate-500 uppercase tracking-wide truncate">
-                            {w.category} • Purchased {new Date(w.purchaseDate).toLocaleDateString()}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                              {w.category}
+                            </p>
+                            <span className="hidden sm:inline text-slate-300">•</span>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              Buy: {new Date(w.purchaseDate).toLocaleDateString()}
+                            </p>
+                            <span className="hidden sm:inline text-slate-300">•</span>
+                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
+                              Exp: {progress.expiryDate.toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                       
@@ -282,15 +295,13 @@ const Dashboard = () => {
                           {w.durationMonths} MO
                         </div>
                         
-                        {w.fileIds && w.fileIds.length > 0 && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleViewFiles(w); }}
-                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-amber-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                            title="View Receipts"
-                          >
-                            <FileText className="w-5 h-5" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleViewDetails(w); }}
+                          className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-amber-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                          title="View Details"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
 
                         <button 
                           onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
@@ -312,7 +323,11 @@ const Dashboard = () => {
                     <div className="space-y-2">
                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
                         <span>Warranty Progress</span>
-                        <span>{Math.round(progress.percentage)}% Remaining</span>
+                        <span>
+                          {progress.remainingMonths < 1 && progress.remainingMonths > 0 
+                            ? `${progress.remainingDays} Days Left` 
+                            : `${Math.round(progress.percentage)}% Remaining`}
+                        </span>
                       </div>
                       <div className="h-3 w-full neo-inset rounded-full overflow-hidden p-0.5">
                         <motion.div 
@@ -415,64 +430,147 @@ const Dashboard = () => {
       </div>
 
       <AnimatePresence>
-        {viewingFilesId && (
+        {viewingWarranty && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={() => setViewingFilesId(null)}
+            onClick={() => setViewingWarranty(null)}
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="neo-outset p-8 w-full max-w-lg bg-[#e0e5ec] dark:bg-[#2d3436] space-y-6"
+              className="neo-outset p-8 w-full max-w-2xl bg-[#e0e5ec] dark:bg-[#2d3436] space-y-8 max-h-[90vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center">
-                <h3 className="text-2xl font-black tracking-tight">Attached Files</h3>
-                <button onClick={() => setViewingFilesId(null)} className="p-2 neo-button rounded-lg bg-inherit">
-                  <X className="w-5 h-5" />
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-8 h-8 text-indigo-600" />
+                    <h3 className="text-3xl font-black tracking-tight">{viewingWarranty.title}</h3>
+                  </div>
+                  <p className="text-sm font-black text-slate-500 uppercase tracking-widest ml-11">{viewingWarranty.category}</p>
+                </div>
+                <button onClick={() => setViewingWarranty(null)} className="p-2 neo-button rounded-xl bg-inherit">
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="space-y-4">
-                {isLoadingFiles ? (
-                  <div className="py-12 flex flex-col items-center gap-4">
-                    <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
-                    <p className="font-bold text-slate-500 animate-pulse">Fetching file links...</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="neo-inset p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-3 text-indigo-600">
+                    <Calendar className="w-5 h-5" />
+                    <span className="text-xs font-black uppercase tracking-widest">Dates & Duration</span>
                   </div>
-                ) : currentFiles.length > 0 ? (
-                  currentFiles.map((file, idx) => (
-                    <div key={idx} className="neo-inset p-4 flex items-center justify-between group hover:neo-outset transition-all">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-indigo-500" />
-                        <span className="font-bold text-sm truncate max-w-[200px]">{file.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a 
-                          href={file.webViewLink} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="p-2 neo-button rounded-xl text-xs font-black uppercase tracking-widest text-indigo-600"
-                        >
-                          View
-                        </a>
-                        {file.webContentLink && (
-                          <a 
-                            href={file.webContentLink}
-                            className="p-2 neo-button rounded-xl text-xs font-black uppercase tracking-widest text-emerald-600"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                        )}
-                      </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase">Purchased</span>
+                      <span className="font-black">{new Date(viewingWarranty.purchaseDate).toLocaleDateString()}</span>
                     </div>
-                  ))
-                ) : (
-                  <p className="py-8 text-center font-bold text-slate-400">No files found or unable to fetch links.</p>
-                )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-slate-500 uppercase">Duration</span>
+                      <span className="font-black text-indigo-600">{viewingWarranty.durationMonths} Months</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <span className="text-xs font-bold text-slate-500 uppercase">Expires On</span>
+                      <span className="font-black text-red-500">
+                        {getProgressData(viewingWarranty.purchaseDate, viewingWarranty.durationMonths).expiryDate.toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="neo-inset p-6 rounded-2xl space-y-4">
+                  <div className="flex items-center gap-3 text-indigo-600">
+                    <Tag className="w-5 h-5" />
+                    <span className="text-xs font-black uppercase tracking-widest">Tags & Details</span>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      {viewingWarranty.tags.map((tag, i) => (
+                        <span key={i} className="px-3 py-1 neo-outset rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                          {tag}
+                        </span>
+                      ))}
+                      {viewingWarranty.tags.length === 0 && <span className="text-xs font-bold text-slate-400 italic">No tags</span>}
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Description</span>
+                      <p className="text-sm font-bold text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {viewingWarranty.description || 'No description provided.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 text-indigo-600">
+                  <FileText className="w-5 h-5" />
+                  <span className="text-xs font-black uppercase tracking-widest">Attached Receipts</span>
+                </div>
+                
+                <div className="space-y-3">
+                  {isLoadingFiles ? (
+                    <div className="py-8 flex flex-col items-center gap-3">
+                      <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                      <p className="text-xs font-black text-slate-500 animate-pulse uppercase">Fetching files...</p>
+                    </div>
+                  ) : currentFiles.length > 0 ? (
+                    currentFiles.map((file, idx) => (
+                      <div key={idx} className="neo-inset p-4 flex items-center justify-between group hover:neo-outset transition-all">
+                        <div className="flex items-center gap-3">
+                          <FileInfo className="w-5 h-5 text-indigo-500" />
+                          <span className="font-bold text-sm truncate max-w-[300px]">{file.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a 
+                            href={file.webViewLink} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 neo-button rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600"
+                          >
+                            View
+                          </a>
+                          {file.webContentLink && (
+                            <a 
+                              href={file.webContentLink}
+                              className="p-2 neo-button rounded-xl text-emerald-600"
+                              title="Download"
+                            >
+                              <Download className="w-5 h-5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-8 text-center neo-inset rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700">
+                      <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No attachments found</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-4">
+                <button 
+                  onClick={() => {
+                    const id = viewingWarranty.id;
+                    setViewingWarranty(null);
+                    navigate(`/edit/${id}`);
+                  }}
+                  className="flex-1 py-4 neo-button bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-indigo-700 transition-all"
+                >
+                  Edit Entry
+                </button>
+                <button 
+                  onClick={() => setViewingWarranty(null)}
+                  className="flex-1 py-4 neo-button rounded-2xl font-black uppercase tracking-widest text-sm bg-inherit text-slate-500"
+                >
+                  Close
+                </button>
               </div>
             </motion.div>
           </motion.div>
