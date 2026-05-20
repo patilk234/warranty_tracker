@@ -1,12 +1,16 @@
 
-import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useState } from 'react';
 
 const Dashboard = () => {
-  const { database, isLoading, isAuthenticated, login } = useGoogleDrive();
+  const navigate = useNavigate();
+  const { database, isLoading, isAuthenticated, login, deleteWarranty } = useGoogleDrive();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   if (!isAuthenticated) {
     return (
@@ -49,6 +53,11 @@ const Dashboard = () => {
 
   const warranties = database?.warranties || [];
   
+  const filteredWarranties = warranties.filter(w => 
+    w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    w.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const activeWarranties = warranties.filter(w => {
     const expiryDate = new Date(w.purchaseDate);
     expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
@@ -122,25 +131,29 @@ const Dashboard = () => {
               type="text" 
               placeholder="Search warranties..." 
               className="flex-1 bg-transparent border-none outline-none font-bold text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button className="p-4 neo-button rounded-xl !p-3 mr-1 bg-inherit">
+            <button className="p-4 neo-button rounded-xl !p-3 mr-1 bg-[#e0e5ec] dark:bg-[#2d3436]">
               <Filter className="w-5 h-5 text-slate-500" />
             </button>
           </div>
 
           <div className="space-y-6">
-            {warranties.length === 0 ? (
+            {filteredWarranties.length === 0 ? (
               <div className="text-center py-24 neo-inset border-2 border-dashed border-slate-300 dark:border-slate-700">
-                <p className="text-slate-500 font-black tracking-tight text-xl">No warranties found. Start by adding one!</p>
+                <p className="text-slate-500 font-black tracking-tight text-xl">
+                  {searchQuery ? 'No matches found for your search.' : 'No warranties found. Start by adding one!'}
+                </p>
               </div>
             ) : (
-              warranties.map((w, i) => (
+              filteredWarranties.map((w, i) => (
                 <motion.div
                   key={w.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="neo-outset p-6 flex items-center justify-between hover:neo-inset transition-all duration-200 cursor-pointer"
+                  className="neo-outset p-6 flex items-center justify-between hover:neo-inset transition-all duration-200 group relative"
                 >
                   <div className="flex items-center gap-6">
                     <div className="w-16 h-16 neo-inset rounded-2xl flex items-center justify-center">
@@ -153,11 +166,68 @@ const Dashboard = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="hidden sm:block neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
                       {w.durationMonths} MO
                     </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => navigate(`/edit/${w.id}`)}
+                        className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-slate-600 hover:text-indigo-600 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button 
+                        onClick={() => setIsDeleting(w.id)}
+                        className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-slate-600 hover:text-red-500 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Delete Confirmation Overlay */}
+                  <AnimatePresence>
+                    {isDeleting === w.id && (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-10 bg-[#e0e5ec]/95 dark:bg-[#2d3436]/95 rounded-2xl flex items-center justify-between px-8"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 neo-inset rounded-xl text-red-500">
+                            <AlertTriangle className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Delete this warranty?</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">This action cannot be undone.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button 
+                            onClick={() => setIsDeleting(null)}
+                            className="px-6 py-2.5 neo-button rounded-xl text-sm font-black uppercase tracking-widest bg-inherit"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              await deleteWarranty(w.id);
+                              setIsDeleting(null);
+                            }}
+                            className="px-6 py-2.5 bg-red-500 text-white rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-red-500/30 active:scale-95"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               ))
             )}
