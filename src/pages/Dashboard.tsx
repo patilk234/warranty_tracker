@@ -79,24 +79,25 @@ const Dashboard = () => {
   };
 
   const getProgressData = (purchaseDate: string, durationMonths: number) => {
-    const start = new Date(purchaseDate).getTime();
+    const purchaseTime = new Date(purchaseDate).getTime();
     const durationMonthsNum = Number(durationMonths) || 0;
     const durationMs = durationMonthsNum * 30.44 * 24 * 60 * 60 * 1000;
-    const end = start + durationMs;
+    const expiryTime = purchaseTime + durationMs;
     const now = new Date().getTime();
     
-    const total = durationMs;
-    const remaining = Math.max(0, end - now);
-    const percentage = total > 0 ? (remaining / total) * 100 : 0;
+    const remainingMs = Math.max(0, expiryTime - now);
+    const remainingMonths = remainingMs / (30.44 * 24 * 60 * 60 * 1000);
     
-    // Remaining months for color calculation
-    const remainingMonths = remaining / (30.44 * 24 * 60 * 60 * 1000);
+    // Progress is relative to a standard 12-month period
+    const twelveMonthsMs = 12 * 30.44 * 24 * 60 * 60 * 1000;
+    const percentage = Math.min(100, (remainingMs / twelveMonthsMs) * 100);
 
-    let colorClass = 'bg-emerald-500';
-    if (remainingMonths < 1) colorClass = 'bg-red-500';
-    else if (remainingMonths < 3) colorClass = 'bg-orange-500';
-    else if (remainingMonths < 6) colorClass = 'bg-yellow-500';
-    else if (remainingMonths < 12) colorClass = 'bg-lime-500';
+    let colorClass = 'bg-emerald-500'; // 12+ months remaining
+    if (remainingMonths <= 0) colorClass = 'bg-slate-500'; // Expired
+    else if (remainingMonths < 1) colorClass = 'bg-red-500'; // Critical (< 1 mo)
+    else if (remainingMonths < 3) colorClass = 'bg-orange-500'; // Low (< 3 mo)
+    else if (remainingMonths < 6) colorClass = 'bg-yellow-500'; // Medium (< 6 mo)
+    else if (remainingMonths < 12) colorClass = 'bg-lime-500'; // Good (< 12 mo)
     
     return { percentage, colorClass, remainingMonths };
   };
