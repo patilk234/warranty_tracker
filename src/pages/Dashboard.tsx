@@ -1,10 +1,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, X, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, X, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+
+const ENTRIES_PER_PAGE = 10;
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +14,11 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   if (!isAuthenticated) {
     return (
@@ -54,10 +61,9 @@ const Dashboard = () => {
 
   const warranties = database?.warranties || [];
   
-  // Refined Logic for Expiration
   const { activeWarranties, expiredWarranties, expiringSoon } = useMemo(() => {
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // Start of today
+    now.setHours(0, 0, 0, 0);
 
     const active: any[] = [];
     const expired: any[] = [];
@@ -66,13 +72,12 @@ const Dashboard = () => {
     warranties.forEach(w => {
       const expiryDate = new Date(w.purchaseDate);
       expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
-      expiryDate.setHours(23, 59, 59, 999); // End of the expiry day
+      expiryDate.setHours(23, 59, 59, 999); 
 
-      const diffTime = expiryDate.getTime() - now.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffTime >= 0) {
+      if (expiryDate.getTime() >= now.getTime()) {
         active.push(w);
+        const diffTime = expiryDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         if (diffDays <= 30) {
           soon.push(w);
         }
@@ -84,15 +89,59 @@ const Dashboard = () => {
     return { activeWarranties: active, expiredWarranties: expired, expiringSoon: soon };
   }, [warranties]);
 
-  const filteredWarranties = warranties.filter(w => 
+  const filteredWarranties = useMemo(() => warranties.filter(w => 
     w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     w.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ), [warranties, searchQuery]);
+
+  const paginatedWarranties = useMemo(() => {
+    const startIndex = (currentPage - 1) * ENTRIES_PER_PAGE;
+    return filteredWarranties.slice(startIndex, startIndex + ENTRIES_PER_PAGE);
+  }, [currentPage, filteredWarranties]);
+  
+  const totalPages = Math.ceil(filteredWarranties.length / ENTRIES_PER_PAGE);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   const chartData = [
     { name: 'Active', value: activeWarranties.length, color: '#4f46e5' },
     { name: 'Expired', value: expiredWarranties.length, color: '#ef4444' },
   ];
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div className="flex items-center justify-between pt-6 mt-6 border-t border-slate-200 dark:border-slate-700">
+        <div>
+          <p className="text-sm font-bold text-slate-500">
+            Page <span className="font-black text-slate-700 dark:text-slate-200">{currentPage}</span> of <span className="font-black text-slate-700 dark:text-slate-200">{totalPages}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="flex items-center gap-2 px-4 py-2.5 neo-button rounded-xl text-sm font-black uppercase tracking-widest bg-inherit disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Prev
+          </button>
+          <button 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-2 px-4 py-2.5 neo-button rounded-xl text-sm font-black uppercase tracking-widest bg-inherit disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-12 max-w-7xl mx-auto px-4 py-8">
@@ -110,7 +159,6 @@ const Dashboard = () => {
         </Link>
       </header>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {[
           { label: "Total Warranties", value: warranties.length, icon: <Calendar className="w-6 h-6 text-indigo-600" />, color: "indigo" },
@@ -138,7 +186,6 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Warranty List */}
         <div className="lg:col-span-2 space-y-8">
           <div className="neo-inset p-2 flex items-center gap-4">
             <div className="p-3">
@@ -157,14 +204,14 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-6">
-            {filteredWarranties.length === 0 ? (
+            {paginatedWarranties.length === 0 ? (
               <div className="text-center py-24 neo-inset border-2 border-dashed border-slate-300 dark:border-slate-700">
                 <p className="text-slate-500 font-black tracking-tight text-xl">
-                  {searchQuery ? 'No matches found for your search.' : 'No warranties found. Start by adding one!'}
+                  {searchQuery ? 'No matches found.' : 'No warranties added yet.'}
                 </p>
               </div>
             ) : (
-              filteredWarranties.map((w, i) => (
+              paginatedWarranties.map((w, i) => (
                 <motion.div
                   key={w.id}
                   initial={{ opacity: 0, x: -20 }}
@@ -176,7 +223,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center gap-6">
                     <div className="w-16 h-16 neo-inset rounded-2xl flex items-center justify-center">
-                      <ShieldCheck className={`w-8 h-8 ${activeWarranties.includes(w) ? 'text-indigo-600' : 'text-slate-400'}`} />
+                      <ShieldCheck className={`w-8 h-8 ${activeWarranties.some(aw => aw.id === w.id) ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </div>
                     <div className="space-y-1">
                       <h4 className="text-xl font-black tracking-tight">{w.title}</h4>
@@ -198,7 +245,7 @@ const Dashboard = () => {
                           className="neo-inset px-6 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide flex items-center gap-2"
                         >
                           {w.durationMonths} MO
-                          <ChevronRight className="w-4 h-4 text-slate-300" />
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
                         </motion.div>
                       ) : (
                         <motion.div
@@ -210,20 +257,14 @@ const Dashboard = () => {
                           className="flex items-center gap-3"
                         >
                           <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/edit/${w.id}`);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
                             className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
                             title="Edit Warranty"
                           >
                             <Edit className="w-5 h-5" />
                           </button>
                           <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsDeleting(w.id);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); setIsDeleting(w.id); }}
                             className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
                             title="Delete Warranty"
                           >
@@ -234,7 +275,6 @@ const Dashboard = () => {
                     </AnimatePresence>
                   </div>
 
-                  {/* Delete Confirmation Overlay */}
                   <AnimatePresence>
                     {isDeleting === w.id && (
                       <motion.div 
@@ -249,15 +289,12 @@ const Dashboard = () => {
                           </div>
                           <div>
                             <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Confirm Delete?</p>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Permanent action</p>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">This cannot be undone.</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
                           <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setIsDeleting(null);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); setIsDeleting(null); }}
                             className="px-5 py-2.5 neo-button rounded-xl text-xs font-black uppercase tracking-widest bg-inherit"
                           >
                             Cancel
@@ -280,9 +317,9 @@ const Dashboard = () => {
               ))
             )}
           </div>
+          {renderPagination()}
         </div>
 
-        {/* Chart/Side Info */}
         <div className="space-y-12">
           <div className="neo-outset p-10 space-y-8">
             <h4 className="text-2xl font-black tracking-tight text-center leading-none">Status Overview</h4>
