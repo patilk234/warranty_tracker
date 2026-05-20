@@ -1,6 +1,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -13,7 +13,6 @@ const Dashboard = () => {
   const { database, isLoading, isAuthenticated, login, deleteWarranty } = useGoogleDrive();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -70,8 +69,11 @@ const Dashboard = () => {
     const soon: any[] = [];
 
     warranties.forEach(w => {
-      const expiryDate = new Date(w.purchaseDate);
-      expiryDate.setMonth(expiryDate.getMonth() + w.durationMonths);
+      const purchaseDate = new Date(w.purchaseDate);
+      const expiryDate = new Date(purchaseDate);
+      // Ensure durationMonths is treated as a number to avoid string concatenation
+      const durationMonths = Number(w.durationMonths) || 0;
+      expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
       expiryDate.setHours(23, 59, 59, 999); 
 
       if (expiryDate.getTime() >= now.getTime()) {
@@ -217,62 +219,39 @@ const Dashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  onMouseEnter={() => setHoveredId(w.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="neo-outset p-6 flex items-center justify-between hover:neo-inset transition-all duration-200 group relative overflow-hidden"
+                  className="neo-outset p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:neo-inset transition-all duration-200 group relative overflow-hidden"
                 >
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 neo-inset rounded-2xl flex items-center justify-center">
+                  <div className="flex items-center gap-6 w-full sm:w-auto">
+                    <div className="w-16 h-16 shrink-0 neo-inset rounded-2xl flex items-center justify-center">
                       <ShieldCheck className={`w-8 h-8 ${activeWarranties.some(aw => aw.id === w.id) ? 'text-indigo-600' : 'text-slate-400'}`} />
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="text-xl font-black tracking-tight">{w.title}</h4>
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wide">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <h4 className="text-xl font-black tracking-tight truncate">{w.title}</h4>
+                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wide truncate">
                         {w.category} • Purchased {new Date(w.purchaseDate).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 relative min-w-[120px] h-12 justify-end">
-                    <AnimatePresence mode="wait">
-                      {hoveredId !== w.id ? (
-                        <motion.div
-                          key="badge"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="neo-inset px-6 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide flex items-center gap-2"
-                        >
-                          {w.durationMonths} MO
-                          <ChevronRight className="w-4 h-4 text-slate-400" />
-                        </motion.div>
-                      ) : (
-                        <motion.div
-                          key="actions"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="flex items-center gap-3"
-                        >
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
-                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                            title="Edit Warranty"
-                          >
-                            <Edit className="w-5 h-5" />
-                          </button>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setIsDeleting(w.id); }}
-                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                            title="Delete Warranty"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end sm:justify-start">
+                    <div className="neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
+                      {w.durationMonths} MO
+                    </div>
+                    
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
+                      className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                      title="Edit Warranty"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setIsDeleting(w.id); }}
+                      className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                      title="Delete Warranty"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
 
                   <AnimatePresence>
