@@ -24,7 +24,7 @@ const Navbar = () => {
             <Link to="/" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Home</Link>
             <Link to="/pricing" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">Pricing</Link>
             <a 
-              href="https://github.com/sassanix/warracker" 
+              href="https://github.com/patilk234/warranty_tracker" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
@@ -54,12 +54,14 @@ const Navbar = () => {
             </button>
           ) : (
             <div className="flex items-center gap-3">
-              <Link to="/dashboard" className="p-2.5 neo-button rounded-xl !p-2 bg-inherit">
-                <LayoutDashboard className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              <Link to="/dashboard" className="neo-button flex items-center gap-2 text-sm bg-inherit">
+                <LayoutDashboard className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                Dashboard
               </Link>
               <button 
                 onClick={logout}
                 className="p-2.5 neo-button rounded-xl !p-2 bg-inherit"
+                aria-label="Logout"
               >
                 <LogOut className="w-5 h-5 text-red-500" />
               </button>
