@@ -1,6 +1,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, Clock, AlertTriangle, ShieldCheck, Edit, Trash2, ChevronLeft, ChevronRight, FileText, Download, Loader2, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleDrive } from '../hooks/useGoogleDrive';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -11,10 +11,14 @@ const ENTRIES_PER_PAGE = 10;
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { database, isLoading, isAuthenticated, login, deleteWarranty } = useGoogleDrive();
+  const { database, isLoading, isAuthenticated, login, deleteWarranty, getFileMetadata } = useGoogleDrive();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const [viewingFilesId, setViewingFilesId] = useState<string | null>(null);
+  const [currentFiles, setCurrentFiles] = useState<{name: string, webViewLink: string, webContentLink?: string}[]>([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
   const warranties = useMemo(() => database?.warranties || [], [database?.warranties]);
   
@@ -29,7 +33,6 @@ const Dashboard = () => {
     warranties.forEach(w => {
       const purchaseDate = new Date(w.purchaseDate);
       const expiryDate = new Date(purchaseDate);
-      // Ensure durationMonths is treated as a number to avoid string concatenation
       const durationMonths = Number(w.durationMonths) || 0;
       expiryDate.setMonth(expiryDate.getMonth() + durationMonths);
       expiryDate.setHours(23, 59, 59, 999); 
@@ -60,6 +63,43 @@ const Dashboard = () => {
   }, [currentPage, filteredWarranties]);
   
   const totalPages = Math.ceil(filteredWarranties.length / ENTRIES_PER_PAGE);
+
+  const handleViewFiles = async (w: Warranty) => {
+    setViewingFilesId(w.id);
+    setIsLoadingFiles(true);
+    setCurrentFiles([]);
+    try {
+      const files = await Promise.all(w.fileIds.map(id => getFileMetadata(id)));
+      setCurrentFiles(files);
+    } catch (err) {
+      console.error('Error fetching file metadata:', err);
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  };
+
+  const getProgressData = (purchaseDate: string, durationMonths: number) => {
+    const start = new Date(purchaseDate).getTime();
+    const durationMonthsNum = Number(durationMonths) || 0;
+    const durationMs = durationMonthsNum * 30.44 * 24 * 60 * 60 * 1000;
+    const end = start + durationMs;
+    const now = new Date().getTime();
+    
+    const total = durationMs;
+    const remaining = Math.max(0, end - now);
+    const percentage = total > 0 ? (remaining / total) * 100 : 0;
+    
+    // Remaining months for color calculation
+    const remainingMonths = remaining / (30.44 * 24 * 60 * 60 * 1000);
+
+    let colorClass = 'bg-emerald-500';
+    if (remainingMonths < 1) colorClass = 'bg-red-500';
+    else if (remainingMonths < 3) colorClass = 'bg-orange-500';
+    else if (remainingMonths < 6) colorClass = 'bg-yellow-500';
+    else if (remainingMonths < 12) colorClass = 'bg-lime-500';
+    
+    return { percentage, colorClass, remainingMonths };
+  };
 
   if (!isAuthenticated) {
     return (
@@ -213,87 +253,117 @@ const Dashboard = () => {
                 </p>
               </div>
             ) : (
-              paginatedWarranties.map((w, i) => (
-                <motion.div
-                  key={w.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="neo-outset p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 hover:neo-inset transition-all duration-200 group relative overflow-hidden"
-                >
-                  <div className="flex items-center gap-6 w-full sm:w-auto">
-                    <div className="w-16 h-16 shrink-0 neo-inset rounded-2xl flex items-center justify-center">
-                      <ShieldCheck className={`w-8 h-8 ${activeWarranties.some(aw => aw.id === w.id) ? 'text-indigo-600' : 'text-slate-400'}`} />
-                    </div>
-                    <div className="space-y-1 flex-1 min-w-0">
-                      <h4 className="text-xl font-black tracking-tight truncate">{w.title}</h4>
-                      <p className="text-sm font-bold text-slate-500 uppercase tracking-wide truncate">
-                        {w.category} • Purchased {new Date(w.purchaseDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-end sm:justify-start">
-                    <div className="neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
-                      {w.durationMonths} MO
-                    </div>
-                    
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
-                      className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                      title="Edit Warranty"
-                    >
-                      <Edit className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setIsDeleting(w.id); }}
-                      className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
-                      title="Delete Warranty"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+              paginatedWarranties.map((w, i) => {
+                const progress = getProgressData(w.purchaseDate, w.durationMonths);
+                return (
+                  <motion.div
+                    key={w.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="neo-outset p-6 flex flex-col items-stretch gap-6 hover:neo-inset transition-all duration-200 group relative overflow-hidden"
+                  >
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+                      <div className="flex items-center gap-6 w-full sm:w-auto">
+                        <div className="w-16 h-16 shrink-0 neo-inset rounded-2xl flex items-center justify-center">
+                          <ShieldCheck className={`w-8 h-8 ${activeWarranties.some(aw => aw.id === w.id) ? 'text-indigo-600' : 'text-slate-400'}`} />
+                        </div>
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <h4 className="text-xl font-black tracking-tight truncate">{w.title}</h4>
+                          <p className="text-sm font-bold text-slate-500 uppercase tracking-wide truncate">
+                            {w.category} • Purchased {new Date(w.purchaseDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3 w-full sm:w-auto justify-end sm:justify-start">
+                        <div className="neo-inset px-4 py-2 rounded-xl text-sm font-black text-indigo-600 tracking-wide">
+                          {w.durationMonths} MO
+                        </div>
+                        
+                        {w.fileIds && w.fileIds.length > 0 && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleViewFiles(w); }}
+                            className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-amber-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                            title="View Receipts"
+                          >
+                            <FileText className="w-5 h-5" />
+                          </button>
+                        )}
 
-                  <AnimatePresence>
-                    {isDeleting === w.id && (
-                      <motion.div 
-                        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        animate={{ opacity: 1, backdropFilter: 'blur(4px)' }}
-                        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-                        className="absolute inset-0 z-20 bg-[#e0e5ec]/90 dark:bg-[#2d3436]/90 rounded-2xl flex items-center justify-between px-8"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 neo-inset rounded-xl text-red-500">
-                            <AlertTriangle className="w-6 h-6" />
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); navigate(`/edit/${w.id}`); }}
+                          className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-indigo-600 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                          title="Edit Warranty"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setIsDeleting(w.id); }}
+                          className="p-3 neo-button rounded-xl bg-[#e0e5ec] dark:bg-[#2d3436] text-red-500 hover:scale-110 active:scale-95 transition-all shadow-sm"
+                          title="Delete Warranty"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span>Warranty Progress</span>
+                        <span>{Math.round(progress.percentage)}% Remaining</span>
+                      </div>
+                      <div className="h-3 w-full neo-inset rounded-full overflow-hidden p-0.5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress.percentage}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className={`h-full rounded-full ${progress.colorClass} shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
+                        />
+                      </div>
+                    </div>
+
+                    <AnimatePresence>
+                      {isDeleting === w.id && (
+                        <motion.div 
+                          initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                          animate={{ opacity: 1, backdropFilter: 'blur(4px)' }}
+                          exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
+                          className="absolute inset-0 z-20 bg-[#e0e5ec]/90 dark:bg-[#2d3436]/90 rounded-2xl flex items-center justify-between px-8"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="p-3 neo-inset rounded-xl text-red-500">
+                              <AlertTriangle className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Confirm Delete?</p>
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">This cannot be undone.</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-black text-slate-800 dark:text-white uppercase tracking-tight">Confirm Delete?</p>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">This cannot be undone.</p>
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setIsDeleting(null); }}
+                              className="px-5 py-2.5 neo-button rounded-xl text-xs font-black uppercase tracking-widest bg-inherit"
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                await deleteWarranty(w.id);
+                                setIsDeleting(null);
+                              }}
+                              className="px-5 py-2.5 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/30 active:scale-95"
+                            >
+                              Delete
+                            </button>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); setIsDeleting(null); }}
-                            className="px-5 py-2.5 neo-button rounded-xl text-xs font-black uppercase tracking-widest bg-inherit"
-                          >
-                            Cancel
-                          </button>
-                          <button 
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await deleteWarranty(w.id);
-                              setIsDeleting(null);
-                            }}
-                            className="px-5 py-2.5 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-red-500/30 active:scale-95"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              ))
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })
             )}
           </div>
           {renderPagination()}
@@ -342,6 +412,71 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {viewingFilesId && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setViewingFilesId(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="neo-outset p-8 w-full max-w-lg bg-[#e0e5ec] dark:bg-[#2d3436] space-y-6"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center">
+                <h3 className="text-2xl font-black tracking-tight">Attached Files</h3>
+                <button onClick={() => setViewingFilesId(null)} className="p-2 neo-button rounded-lg bg-inherit">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {isLoadingFiles ? (
+                  <div className="py-12 flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 animate-spin text-indigo-600" />
+                    <p className="font-bold text-slate-500 animate-pulse">Fetching file links...</p>
+                  </div>
+                ) : currentFiles.length > 0 ? (
+                  currentFiles.map((file, idx) => (
+                    <div key={idx} className="neo-inset p-4 flex items-center justify-between group hover:neo-outset transition-all">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-indigo-500" />
+                        <span className="font-bold text-sm truncate max-w-[200px]">{file.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a 
+                          href={file.webViewLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="p-2 neo-button rounded-xl text-xs font-black uppercase tracking-widest text-indigo-600"
+                        >
+                          View
+                        </a>
+                        {file.webContentLink && (
+                          <a 
+                            href={file.webContentLink}
+                            className="p-2 neo-button rounded-xl text-xs font-black uppercase tracking-widest text-emerald-600"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="py-8 text-center font-bold text-slate-400">No files found or unable to fetch links.</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

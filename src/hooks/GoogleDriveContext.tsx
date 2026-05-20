@@ -1,7 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile, setAccessToken } from '../lib/googleDrive';
+import { initGapi, findAppFolder, createAppFolder, findDatabaseFile, readJsonFile, createDatabaseFile, writeJsonFile, setAccessToken, deleteFile, getFileMetadata } from '../lib/googleDrive';
 import type { Database, UserInfo, Warranty } from '../types';
 
 interface GoogleDriveContextType {
@@ -15,6 +15,7 @@ interface GoogleDriveContextType {
   addWarranty: (warranty: Omit<Warranty, 'id' | 'createdAt'>) => Promise<void>;
   updateWarranty: (warranty: Warranty) => Promise<void>;
   deleteWarranty: (id: string) => Promise<void>;
+  getFileMetadata: (fileId: string) => Promise<{ id: string, name: string, webViewLink: string, webContentLink?: string }>;
 }
 
 const GoogleDriveContext = createContext<GoogleDriveContextType | undefined>(undefined);
@@ -192,6 +193,21 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
   const deleteWarranty = async (id: string) => {
     if (!database || !dbFileId) return;
 
+    const warrantyToDelete = database.warranties.find(w => w.id === id);
+    
+    // 1. Delete associated files from Drive
+    if (warrantyToDelete?.fileIds && warrantyToDelete.fileIds.length > 0) {
+      console.log(`Deleting ${warrantyToDelete.fileIds.length} associated files...`);
+      for (const fileId of warrantyToDelete.fileIds) {
+        try {
+          await deleteFile(fileId);
+        } catch (err) {
+          console.error(`Failed to delete file ${fileId}:`, err);
+        }
+      }
+    }
+
+    // 2. Update database
     const updatedDb = {
       ...database,
       warranties: database.warranties.filter(w => w.id !== id),
@@ -213,7 +229,8 @@ export const GoogleDriveProvider = ({ children }: { children: ReactNode }) => {
       logout,
       addWarranty,
       updateWarranty,
-      deleteWarranty
+      deleteWarranty,
+      getFileMetadata
     }}>
       {children}
     </GoogleDriveContext.Provider>

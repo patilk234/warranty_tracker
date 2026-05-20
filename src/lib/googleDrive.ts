@@ -198,3 +198,25 @@ export const uploadFile = async (folderId: string, file: File): Promise<{ id: st
     reader.readAsDataURL(file);
   });
 };
+
+export const deleteFile = async (fileId: string): Promise<void> => {
+  const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`
+    }
+  });
+  if (!response.ok && response.status !== 404) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(`Failed to delete file: ${response.status} ${JSON.stringify(errorBody)}`);
+  }
+};
+
+export const getFileMetadata = async (fileId: string): Promise<{ id: string, name: string, webViewLink: string, webContentLink?: string }> => {
+  const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}?fields=id,name,webViewLink,webContentLink`, {
+    headers: {
+      'Authorization': `Bearer ${getAccessToken()}`
+    }
+  });
+  return handleResponse(response);
+};
